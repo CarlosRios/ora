@@ -15,17 +15,17 @@ const pages = [
     description: "A quiet, personal companion for the Holy Rosary and beloved Catholic prayers.",
   },
   {
-    path: "/rosary",
+    path: "/rosary/",
     title: "How to Pray the Rosary and Its Mysteries | Ora",
     description: "Follow the order of the Holy Rosary and meditate on the Joyful, Luminous, Sorrowful, and Glorious Mysteries.",
   },
   {
-    path: "/prayers",
+    path: "/prayers/",
     title: "Catholic Prayers | Ora",
     description: "A quiet collection of beloved Catholic prayers for daily prayer, reflection, meals, and the Holy Rosary.",
   },
   ...prayers.map((prayer) => ({
-    path: `/prayers/${prayer.id}`,
+    path: `/prayers/${prayer.id}/`,
     title: `${prayer.title} | Ora`,
     description: prayer.intro,
   })),

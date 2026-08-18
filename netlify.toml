@@ -3,21 +3,6 @@
   publish = "dist"
 
 [[redirects]]
-  from = "/rosary/"
-  to = "/rosary"
-  status = 301
-
-[[redirects]]
-  from = "/prayers/"
-  to = "/prayers"
-  status = 301
-
-[[redirects]]
-  from = "/prayers/:prayer/"
-  to = "/prayers/:prayer"
-  status = 301
-
-[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200

@@ -40,9 +40,9 @@ function parseRoute() {
 }
 
 function routePath(route) {
-  if (route.view === "prayer") return `/prayers/${route.id}`;
-  if (route.view === "prayers") return "/prayers";
-  if (route.view === "rosary") return "/rosary";
+  if (route.view === "prayer") return `/prayers/${route.id}/`;
+  if (route.view === "prayers") return "/prayers/";
+  if (route.view === "rosary") return "/rosary/";
   return "/";
 }
 
