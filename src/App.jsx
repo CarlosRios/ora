@@ -20,18 +20,89 @@ import {
 const iconWeight = "regular";
 
 function parseRoute() {
-  const parts = window.location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
-  if (parts[0] === "prayer" && parts[1]) return { view: "prayer", id: parts[1] };
+  const legacyParts = window.location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
+  if (legacyParts.length) {
+    if ((legacyParts[0] === "prayer" || legacyParts[0] === "prayers") && legacyParts[1]) {
+      return { view: "prayer", id: legacyParts[1], legacy: true };
+    }
+    if (legacyParts[0] === "prayers") return { view: "prayers", legacy: true };
+    if (legacyParts[0] === "rosary") return { view: "rosary", legacy: true };
+  }
+
+  const path = window.location.pathname.replace(/\/+$/, "") || "/";
+  const parts = path.split("/").filter(Boolean);
+  if (parts[0] === "prayers" && parts[1]) return { view: "prayer", id: parts[1] };
   if (parts[0] === "prayers") return { view: "prayers" };
   if (parts[0] === "rosary") return { view: "rosary" };
-  return { view: "home" };
+  if (parts.length === 0 || parts.at(-1) === "index.html") return { view: "home" };
+  return { view: "not-found" };
 }
 
-function routeHash(route) {
-  if (route.view === "prayer") return `#/prayer/${route.id}`;
-  if (route.view === "prayers") return "#/prayers";
-  if (route.view === "rosary") return "#/rosary";
-  return "#/";
+function routePath(route) {
+  if (route.view === "prayer") return `/prayers/${route.id}`;
+  if (route.view === "prayers") return "/prayers";
+  if (route.view === "rosary") return "/rosary";
+  return "/";
+}
+
+function routeHref(route) {
+  const path = routePath(route);
+  return window.location.protocol === "file:" ? `#${path}` : path;
+}
+
+function getRouteMeta(route) {
+  if (route.view === "rosary") {
+    return {
+      title: "How to Pray the Rosary and Its Mysteries | Ora",
+      description: "Follow the order of the Holy Rosary and meditate on the Joyful, Luminous, Sorrowful, and Glorious Mysteries.",
+    };
+  }
+
+  if (route.view === "prayers") {
+    return {
+      title: "Catholic Prayers | Ora",
+      description: "A quiet collection of beloved Catholic prayers for daily prayer, reflection, meals, and the Holy Rosary.",
+    };
+  }
+
+  if (route.view === "prayer") {
+    const prayer = prayers.find((item) => item.id === route.id);
+    return prayer
+      ? { title: `${prayer.title} | Ora`, description: prayer.intro }
+      : { title: "Prayer Not Found | Ora", description: "This prayer is not in the Ora collection." };
+  }
+
+  if (route.view === "not-found") {
+    return { title: "Page Not Found | Ora", description: "The requested page could not be found." };
+  }
+
+  return {
+    title: "Ora | Catholic Prayers and the Holy Rosary",
+    description: "A quiet, personal companion for the Holy Rosary and beloved Catholic prayers.",
+  };
+}
+
+function AppLink({ to, navigate, onClick, children, ...props }) {
+  const handleClick = (event) => {
+    onClick?.(event);
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) return;
+
+    event.preventDefault();
+    navigate(to);
+  };
+
+  return (
+    <a href={routeHref(to)} onClick={handleClick} {...props}>
+      {children}
+    </a>
+  );
 }
 
 function useTheme() {
@@ -57,15 +128,41 @@ function App() {
 
   useEffect(() => {
     const onRouteChange = () => setRoute(parseRoute());
+    window.addEventListener("popstate", onRouteChange);
     window.addEventListener("hashchange", onRouteChange);
-    return () => window.removeEventListener("hashchange", onRouteChange);
+    return () => {
+      window.removeEventListener("popstate", onRouteChange);
+      window.removeEventListener("hashchange", onRouteChange);
+    };
   }, []);
 
   useEffect(() => {
-    if (window.location.hash.startsWith("#/rosary/guide")) {
-      window.history.replaceState(null, "", "#/rosary");
+    if (route.legacy && window.location.protocol !== "file:") {
+      const cleanRoute = { ...route };
+      delete cleanRoute.legacy;
+      window.history.replaceState(null, "", routePath(cleanRoute));
+      setRoute(cleanRoute);
     }
-  }, []);
+  }, [route]);
+
+  useEffect(() => {
+    const { title, description } = getRouteMeta(route);
+    document.title = title;
+    document.querySelector('meta[name="description"]')?.setAttribute("content", description);
+    document.querySelector('meta[property="og:title"]')?.setAttribute("content", title);
+    document.querySelector('meta[property="og:description"]')?.setAttribute("content", description);
+    document.querySelector('meta[property="og:url"]')?.setAttribute("content", window.location.href);
+
+    let canonical = document.querySelector('link[rel="canonical"]');
+    if (!canonical) {
+      canonical = document.createElement("link");
+      canonical.rel = "canonical";
+      document.head.appendChild(canonical);
+    }
+    if (window.location.protocol !== "file:") {
+      canonical.href = `${window.location.origin}${routePath(route)}`;
+    }
+  }, [route]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -73,9 +170,13 @@ function App() {
   }, [route.view, route.id]);
 
   const navigate = (nextRoute) => {
-    const hash = routeHash(nextRoute);
-    if (window.location.hash === hash) setRoute(nextRoute);
-    else window.location.hash = hash;
+    const path = routePath(nextRoute);
+    if (window.location.protocol === "file:") {
+      if (window.location.hash !== `#${path}`) window.location.hash = path;
+    } else if (window.location.pathname !== path) {
+      window.history.pushState(null, "", path);
+    }
+    setRoute(nextRoute);
   };
 
   return (
@@ -93,6 +194,7 @@ function App() {
         {route.view === "prayers" && <PrayerLibrary navigate={navigate} />}
         {route.view === "prayer" && <PrayerReader id={route.id} navigate={navigate} />}
         {route.view === "rosary" && <RosarySetup navigate={navigate} />}
+        {route.view === "not-found" && <NotFound navigate={navigate} />}
       </main>
     </div>
   );
@@ -104,30 +206,36 @@ function Header({ route, navigate, menuOpen, setMenuOpen, theme, setTheme }) {
 
   return (
     <header className={`site-header ${isReading ? "site-header--reading" : ""}`}>
-      <button className="brand" onClick={() => navigate({ view: "home" })} aria-label="Ora home">
+      <AppLink className="brand" to={{ view: "home" }} navigate={navigate} aria-label="Ora home">
         <Cross size={19} weight="bold" aria-hidden="true" />
         <span>Ora</span>
-      </button>
+      </AppLink>
 
       <nav className="desktop-nav" aria-label="Main navigation">
-        <button
+        <AppLink
           className={route.view === "home" ? "nav-link active" : "nav-link"}
-          onClick={() => navigate({ view: "home" })}
+          to={{ view: "home" }}
+          navigate={navigate}
+          aria-current={route.view === "home" ? "page" : undefined}
         >
           Home
-        </button>
-        <button
+        </AppLink>
+        <AppLink
           className={route.view === "rosary" ? "nav-link active" : "nav-link"}
-          onClick={() => navigate({ view: "rosary" })}
+          to={{ view: "rosary" }}
+          navigate={navigate}
+          aria-current={route.view === "rosary" ? "page" : undefined}
         >
           The Rosary
-        </button>
-        <button
+        </AppLink>
+        <AppLink
           className={route.view === "prayer" || route.view === "prayers" ? "nav-link active" : "nav-link"}
-          onClick={() => navigate({ view: "prayers" })}
+          to={{ view: "prayers" }}
+          navigate={navigate}
+          aria-current={route.view === "prayer" || route.view === "prayers" ? "page" : undefined}
         >
           Prayers
-        </button>
+        </AppLink>
       </nav>
 
       <div className="header-actions">
@@ -151,14 +259,14 @@ function Header({ route, navigate, menuOpen, setMenuOpen, theme, setTheme }) {
 
       {menuOpen && (
         <nav id="mobile-menu" className="mobile-menu" aria-label="Mobile navigation">
-          <button onClick={() => navigate({ view: "home" })}>Home</button>
-          <button onClick={() => navigate({ view: "rosary" })}>The Rosary</button>
-          <button onClick={() => navigate({ view: "prayers" })}>All Prayers</button>
+          <AppLink to={{ view: "home" }} navigate={navigate}>Home</AppLink>
+          <AppLink to={{ view: "rosary" }} navigate={navigate}>The Rosary</AppLink>
+          <AppLink to={{ view: "prayers" }} navigate={navigate}>All Prayers</AppLink>
           <div className="mobile-prayer-list">
             {prayers.map((prayer) => (
-              <button key={prayer.id} onClick={() => navigate({ view: "prayer", id: prayer.id })}>
+              <AppLink key={prayer.id} to={{ view: "prayer", id: prayer.id }} navigate={navigate}>
                 {prayer.shortTitle}
-              </button>
+              </AppLink>
             ))}
           </div>
         </nav>
@@ -177,13 +285,14 @@ function Home({ navigate }) {
           <p className="eyebrow">Ora et Labora</p>
           <h1>A quiet place<br />to pray.</h1>
           <p className="hero-copy">Keep the prayers you return to close at hand, and enter each one without distraction.</p>
-          <button
+          <AppLink
             className="primary-button primary-button--light"
-            onClick={() => navigate({ view: "rosary" })}
+            to={{ view: "rosary" }}
+            navigate={navigate}
           >
             <CirclesThreePlus size={20} weight={iconWeight} />
             Pray today&apos;s Rosary
-          </button>
+          </AppLink>
         </div>
       </section>
 
@@ -194,7 +303,7 @@ function Home({ navigate }) {
         </div>
 
         <div className="prayer-grid">
-          <button className="rosary-card" onClick={() => navigate({ view: "rosary" })}>
+          <AppLink className="rosary-card" to={{ view: "rosary" }} navigate={navigate}>
             <div className="card-icon"><CirclesThreePlus size={28} weight={iconWeight} /></div>
             <div>
               <span className="card-kicker">Mysteries and order</span>
@@ -202,21 +311,22 @@ function Home({ navigate }) {
               <p>All four sets of mysteries, with the prayers arranged in their proper order.</p>
             </div>
             <ArrowRight size={22} className="card-arrow" />
-          </button>
+          </AppLink>
 
           <div className="prayer-list-card">
             {prayers.filter((prayer) => featuredPrayerIds.includes(prayer.id)).map((prayer) => (
-              <button
+              <AppLink
                 key={prayer.id}
                 className="prayer-row"
-                onClick={() => navigate({ view: "prayer", id: prayer.id })}
+                to={{ view: "prayer", id: prayer.id }}
+                navigate={navigate}
               >
                 <span>
                   <strong>{prayer.shortTitle}</strong>
                   <small>{prayer.subtitle}</small>
                 </span>
                 <ArrowRight size={19} aria-hidden="true" />
-              </button>
+              </AppLink>
             ))}
           </div>
         </div>
@@ -234,9 +344,9 @@ function PrayerLibrary({ navigate }) {
   return (
     <section className="prayers-page">
       <div className="prayers-page-heading">
-        <button className="text-button back-link" onClick={() => navigate({ view: "home" })}>
+        <AppLink className="text-button back-link" to={{ view: "home" }} navigate={navigate}>
           <ArrowLeft size={17} /> Home
-        </button>
+        </AppLink>
         <p className="reader-subtitle">Prayer library</p>
         <h1>Prayers to return to</h1>
         <p>Choose a prayer and read it slowly, without timers or distractions.</p>
@@ -244,10 +354,11 @@ function PrayerLibrary({ navigate }) {
 
       <div className="all-prayers-grid">
         {prayers.map((prayer) => (
-          <button
+          <AppLink
             key={prayer.id}
             className="prayer-library-card"
-            onClick={() => navigate({ view: "prayer", id: prayer.id })}
+            to={{ view: "prayer", id: prayer.id }}
+            navigate={navigate}
           >
             <BookOpenText size={22} weight={iconWeight} />
             <span>
@@ -255,7 +366,7 @@ function PrayerLibrary({ navigate }) {
               <small>{prayer.subtitle}</small>
             </span>
             <ArrowRight size={18} />
-          </button>
+          </AppLink>
         ))}
       </div>
     </section>
@@ -271,7 +382,7 @@ function PrayerReader({ id, navigate }) {
         <BookOpenText size={40} />
         <h1>Prayer not found</h1>
         <p>This prayer is not in the collection.</p>
-        <button className="primary-button" onClick={() => navigate({ view: "home" })}>Return home</button>
+        <AppLink className="primary-button" to={{ view: "home" }} navigate={navigate}>Return home</AppLink>
       </section>
     );
   }
@@ -285,20 +396,22 @@ function PrayerReader({ id, navigate }) {
       <aside className="reader-index" aria-label="Prayer list">
         <p>Prayer library</p>
         {prayers.map((item) => (
-          <button
+          <AppLink
             key={item.id}
             className={item.id === id ? "active" : ""}
-            onClick={() => navigate({ view: "prayer", id: item.id })}
+            to={{ view: "prayer", id: item.id }}
+            navigate={navigate}
+            aria-current={item.id === id ? "page" : undefined}
           >
             {item.shortTitle}
-          </button>
+          </AppLink>
         ))}
       </aside>
 
       <div className="reader-content">
-        <button className="text-button back-link" onClick={() => navigate({ view: "prayers" })}>
+        <AppLink className="text-button back-link" to={{ view: "prayers" }} navigate={navigate}>
           <ArrowLeft size={17} /> All prayers
-        </button>
+        </AppLink>
         <p className="reader-subtitle">{prayer.subtitle}</p>
         <h1>{prayer.title}</h1>
         <p className="reader-intro">{prayer.intro}</p>
@@ -310,23 +423,25 @@ function PrayerReader({ id, navigate }) {
 
         <div className="reader-pagination">
           {previous ? (
-            <button
+            <AppLink
               aria-label={`Previous prayer: ${previous.shortTitle}`}
-              onClick={() => navigate({ view: "prayer", id: previous.id })}
+              to={{ view: "prayer", id: previous.id }}
+              navigate={navigate}
             >
               <ArrowLeft size={18} />
               <span><small>Previous</small>{previous.shortTitle}</span>
-            </button>
+            </AppLink>
           ) : <span />}
           {next && (
-            <button
+            <AppLink
               className="next"
               aria-label={`Next prayer: ${next.shortTitle}`}
-              onClick={() => navigate({ view: "prayer", id: next.id })}
+              to={{ view: "prayer", id: next.id }}
+              navigate={navigate}
             >
               <span><small>Next</small>{next.shortTitle}</span>
               <ArrowRight size={18} />
-            </button>
+            </AppLink>
           )}
         </div>
       </div>
@@ -342,9 +457,9 @@ function RosarySetup({ navigate }) {
   return (
     <section className="rosary-setup">
       <div className="rosary-intro">
-        <button className="text-button back-link" onClick={() => navigate({ view: "home" })}>
+        <AppLink className="text-button back-link" to={{ view: "home" }} navigate={navigate}>
           <ArrowLeft size={17} /> Home
-        </button>
+        </AppLink>
         <p className="reader-subtitle">The Holy Rosary</p>
         <h1>Choose the mysteries</h1>
         <p>Meditate on the life of Christ while moving through the familiar rhythm of the prayers.</p>
@@ -453,9 +568,20 @@ function RosarySetup({ navigate }) {
 
 function PrayerOrderLink({ id, navigate, children }) {
   return (
-    <button onClick={() => navigate({ view: "prayer", id })}>
+    <AppLink to={{ view: "prayer", id }} navigate={navigate}>
       {children}<ArrowRight size={13} />
-    </button>
+    </AppLink>
+  );
+}
+
+function NotFound({ navigate }) {
+  return (
+    <section className="empty-state">
+      <BookOpenText size={40} />
+      <h1>Page not found</h1>
+      <p>The page you requested is not part of this prayer collection.</p>
+      <AppLink className="primary-button" to={{ view: "home" }} navigate={navigate}>Return home</AppLink>
+    </section>
   );
 }
 
