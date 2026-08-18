@@ -18,6 +18,7 @@ import {
 } from "./prayers";
 
 const iconWeight = "regular";
+const siteOrigin = "https://ora.carlosrios.io";
 
 function parseRoute() {
   const legacyParts = window.location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
@@ -151,7 +152,8 @@ function App() {
     document.querySelector('meta[name="description"]')?.setAttribute("content", description);
     document.querySelector('meta[property="og:title"]')?.setAttribute("content", title);
     document.querySelector('meta[property="og:description"]')?.setAttribute("content", description);
-    document.querySelector('meta[property="og:url"]')?.setAttribute("content", window.location.href);
+    const canonicalUrl = `${siteOrigin}${routePath(route)}`;
+    document.querySelector('meta[property="og:url"]')?.setAttribute("content", canonicalUrl);
 
     let canonical = document.querySelector('link[rel="canonical"]');
     if (!canonical) {
@@ -159,9 +161,7 @@ function App() {
       canonical.rel = "canonical";
       document.head.appendChild(canonical);
     }
-    if (window.location.protocol !== "file:") {
-      canonical.href = `${window.location.origin}${routePath(route)}`;
-    }
+    canonical.href = canonicalUrl;
   }, [route]);
 
   useEffect(() => {

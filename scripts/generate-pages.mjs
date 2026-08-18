@@ -6,6 +6,7 @@ import { prayers } from "../src/prayers.js";
 const projectRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const outputRoot = join(projectRoot, "dist");
 const template = await readFile(join(outputRoot, "index.html"), "utf8");
+const siteOrigin = "https://ora.carlosrios.io";
 
 const pages = [
   {
@@ -41,7 +42,7 @@ function escapeAttribute(value) {
 function renderPage(page) {
   const title = escapeAttribute(page.title);
   const description = escapeAttribute(page.description);
-  const path = escapeAttribute(page.path);
+  const canonicalUrl = escapeAttribute(`${siteOrigin}${page.path}`);
 
   return template
     .replace(/<title>[^<]*<\/title>/, `<title>${title}</title>`)
@@ -59,11 +60,11 @@ function renderPage(page) {
     )
     .replace(
       /<meta\s+property="og:url"\s+content="[^"]*"\s*\/>/,
-      `<meta property="og:url" content="${path}" />`,
+      `<meta property="og:url" content="${canonicalUrl}" />`,
     )
     .replace(
       /<link\s+rel="canonical"\s+href="[^"]*"\s*\/>/,
-      `<link rel="canonical" href="${path}" />`,
+      `<link rel="canonical" href="${canonicalUrl}" />`,
     );
 }
 
@@ -75,5 +76,19 @@ for (const page of pages) {
   await mkdir(dirname(destination), { recursive: true });
   await writeFile(destination, renderPage(page));
 }
+
+const sitemap = [
+  '<?xml version="1.0" encoding="UTF-8"?>',
+  '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+  ...pages.map((page) => `  <url><loc>${siteOrigin}${page.path}</loc></url>`),
+  '</urlset>',
+  '',
+].join("\n");
+
+await writeFile(join(outputRoot, "sitemap.xml"), sitemap);
+await writeFile(
+  join(outputRoot, "robots.txt"),
+  `User-agent: *\nAllow: /\nSitemap: ${siteOrigin}/sitemap.xml\n`,
+);
 
 console.log(`Generated ${pages.length} indexable pages.`);
