@@ -15,6 +15,8 @@ A small, static Catholic prayer companion built with React and Vite.
 
 The Rosary page presents all four sets of mysteries and a concise prayer order. Theme preference is stored locally. There are no accounts, analytics, or external services.
 
+Scripture passages are from the public-domain [Douay–Rheims American Edition (1899)](https://github.com/midvash/bible-data/tree/main/versions/en/dra), a Catholic translation of the Latin Vulgate.
+
 ## Run locally
 
 ```bash

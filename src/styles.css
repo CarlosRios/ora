@@ -1028,10 +1028,11 @@ a:focus-visible {
   margin: 0 0 12px;
 }
 
-.mystery-meta {
+.mystery-list .mystery-meta {
   color: var(--accent);
   font-size: 11px;
   font-weight: 700;
+  margin-bottom: 16px;
 }
 
 .mystery-meta i {
@@ -1039,6 +1040,34 @@ a:focus-visible {
   font-style: normal;
   margin-left: 10px;
   padding-left: 10px;
+}
+
+.mystery-list .mystery-passage {
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 16px;
+  line-height: 1.72;
+  margin-bottom: 10px;
+}
+
+.scripture-verse:not(:last-child) {
+  margin-right: 0.32em;
+}
+
+.scripture-verse sup {
+  color: var(--accent);
+  font-family: var(--sans);
+  font-size: 0.62em;
+  font-weight: 750;
+  margin-right: 0.22em;
+  top: -0.35em;
+}
+
+.scripture-translation {
+  color: var(--ink-faint);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .guide-page {
