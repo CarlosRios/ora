@@ -15,6 +15,8 @@ import {
   getSuggestedMystery,
   mysteries,
   prayers,
+  scripturePassages,
+  scriptureTranslation,
 } from "./prayers";
 
 const iconWeight = "regular";
@@ -556,7 +558,18 @@ function RosarySetup({ navigate }) {
                 <span className="mystery-number">{index + 1}</span>
                 <h3>{item.title}</h3>
                 <p>{item.meditation}</p>
-                <span className="mystery-meta">{item.scripture} <i>Fruit: {item.fruit}</i></span>
+                <p className="mystery-meta">
+                  <span>{item.scripture}</span>
+                  <i>Fruit: {item.fruit}</i>
+                </p>
+                <p className="mystery-passage">
+                  {scripturePassages[item.scripture].map(([verse, text]) => (
+                    <span className="scripture-verse" key={verse}>
+                      <sup>{verse}</sup>{text}{" "}
+                    </span>
+                  ))}
+                </p>
+                <span className="scripture-translation">{scriptureTranslation}</span>
               </div>
             </li>
           ))}
