@@ -12,6 +12,7 @@ A small, static Catholic prayer companion built with React and Vite.
 - Grace Before Meals
 - Grace After Meals
 - St. Michael the Archangel Prayer
+- The St. Francis Prayer
 
 The Rosary page presents all four sets of mysteries and a concise prayer order. Theme preference is stored locally. There are no accounts, analytics, or external services.
 
