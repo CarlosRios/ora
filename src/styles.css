@@ -716,6 +716,10 @@ a:focus-visible {
   margin: 0 0 1.15em;
 }
 
+.prayer-text p {
+  white-space: pre-line;
+}
+
 .prayer-note {
   background: var(--accent-soft);
   border-radius: 12px;

@@ -137,6 +137,18 @@ export const prayers = [
     ),
   },
   {
+    id: "st-francis-prayer",
+    title: "The St. Francis Prayer",
+    shortTitle: "St. Francis Prayer",
+    subtitle: "A prayer for peace",
+    intro: "Ask to bring love, hope, and consolation to others.",
+    text: paragraphs(
+      "Lord, make me an instrument of your peace:\nwhere there is hatred, let me sow love;\nwhere there is injury, pardon;\nwhere there is doubt, faith;\nwhere there is despair, hope;\nwhere there is darkness, light;\nwhere there is sadness, joy.",
+      "O divine Master, grant that I may not so much seek\nto be consoled as to console,\nto be understood as to understand,\nto be loved as to love.",
+      "For it is in giving that we receive,\nit is in pardoning that we are pardoned,\nand it is in dying that we are born to eternal life.",
+    ),
+  },
+  {
     id: "hail-holy-queen",
     title: "The Hail, Holy Queen",
     shortTitle: "Hail, Holy Queen",
